@@ -30,3 +30,5 @@ const TodosList = () => {
     </div>
   );
 };
+
+export default TodosList;

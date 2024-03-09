@@ -1,47 +1,41 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 
-const initialState = {
-  todos: [],
-  loading: false,
-  error: "",
-};
-
 const api = axios.create({
-  baseURL: "https://localhost5000/todos",
+  baseURL: "http://localhost:5000",
 });
-//get
-export const getAsyncTodos = createAsyncTunk(
+
+export const getAsyncTodos = createAsyncThunk(
   "todos/getAsyncTodos",
-  async (_, {}) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const respose = await api.get("/todos");
-      return respose.data;
+      const response = await api.get("/todos");
+      return response.data;
     } catch (error) {
       return rejectWithValue(error.message);
     }
   }
 );
-//add
-export const addAsyncTodo = createAsyncTunk(
+
+export const addAsyncTodo = createAsyncThunk(
   "todos/addAsyncTodo",
-  async (payload, {}) => {
+  async (payload, { rejectWithValue }) => {
     try {
-      const respose = await api.post("/todos", {
+      const response = await api.post("/todos", {
         title: payload.title,
         id: Date.now(),
         completed: false,
       });
-      return respose.data;
+      return response.data;
     } catch (error) {
       return rejectWithValue(error.message);
     }
   }
 );
-//delete
-export const deleteAsyncTodo = createAsyncTunk(
+
+export const deleteAsyncTodo = createAsyncThunk(
   "todos/deleteAsyncTodo",
-  async (payload, {}) => {
+  async (payload, { rejectWithValue }) => {
     try {
       await api.delete(`/todos/${payload.id}`);
       return { id: payload.id };
@@ -50,14 +44,13 @@ export const deleteAsyncTodo = createAsyncTunk(
     }
   }
 );
-//completed or toggle
-export const toggleAsyncTodo = createAsyncTunk(
+
+export const toggleAsyncTodo = createAsyncThunk(
   "todos/toggleAsyncTodo",
-  async (payload, {}) => {
+  async (payload, { rejectWithValue }) => {
     try {
       const response = await api.patch(`/todos/${payload.id}`, {
         completed: payload.completed,
-        title: payload.title,
       });
       return response.data;
     } catch (error) {
@@ -65,11 +58,15 @@ export const toggleAsyncTodo = createAsyncTunk(
     }
   }
 );
-//slices
+
 const todoSlice = createSlice({
   name: "todos",
-  initialState,
-  reducer: {
+  initialState: {
+    todos: [],
+    loading: false,
+    error: "",
+  },
+  reducers: {
     addTodo: (state, action) => {
       const newTodo = {
         id: Date.now(),
@@ -90,42 +87,43 @@ const todoSlice = createSlice({
       );
     },
   },
-  extraReducer: {
+  extraReducers: {
     [getAsyncTodos.pending]: (state, action) => {
-      (state.lading = true), (state.error = ""), (state.todos = []);
+      state.loading = true;
+      state.todos = [];
+      state.error = "";
     },
     [getAsyncTodos.fulfilled]: (state, action) => {
-      (state.lading = false),
-        (state.error = ""),
-        (state.todos = action.payload);
+      state.loading = false;
+      state.todos = action.payload;
+      state.error = "";
     },
     [getAsyncTodos.rejected]: (state, action) => {
-      (state.lading = false),
-        (state.error = action.payload),
-        (state.todos = []);
+      state.loading = false;
+      state.error = action.payload;
+      state.todos = [];
     },
-    //
     [addAsyncTodo.pending]: (state, action) => {
-      state.lading = true;
+      state.loading = true;
     },
     [addAsyncTodo.fulfilled]: (state, action) => {
-      (state.lading = false), state.todos.push((action.payload = []));
+      state.loading = false;
+      state.todos.push(action.payload);
     },
-    //
     [deleteAsyncTodo.fulfilled]: (state, action) => {
       state.todos = state.todos.filter(
         (todo) => todo.id !== Number(action.payload.id)
       );
     },
     [toggleAsyncTodo.fulfilled]: (state, action) => {
-      const selectedTodos = state.todos.find(
+      const selectedTodo = state.todos.find(
         (todo) => todo.id === Number(action.payload.id)
       );
-      selectedTodos.completed = action.payload.completed;
+      selectedTodo.completed = action.payload.completed;
     },
   },
 });
 
-export const { addTodo, toggleTodo, deleteTodo } = todoSlice.action;
+export const { addTodo, deleteTodo, toggleTodo } = todoSlice.actions;
 
 export default todoSlice.reducer;
